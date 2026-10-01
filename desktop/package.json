@@ -20,7 +20,7 @@
     },
     "files": [
       "main.js",
-      "config.json"
+      "ui/**/*"
     ]
   }
 }

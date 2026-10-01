@@ -8,8 +8,13 @@
   const keyError = document.getElementById("key-error");
   const appEl = document.getElementById("app");
 
+  // This page is served from Supabase Storage, while the API is a separate
+  // Edge Function - different paths under the same project domain (so no
+  // CORS setup needed), but not a shared prefix, hence the absolute URL.
+  const API_BASE = "https://ckvrruuvbpigusybylew.supabase.co/functions/v1/api";
+
   async function api(path, opts = {}) {
-    const res = await fetch(`/api${path}`, {
+    const res = await fetch(`${API_BASE}${path}`, {
       ...opts,
       headers: {
         "Content-Type": "application/json",

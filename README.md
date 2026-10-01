@@ -6,30 +6,26 @@ Android. No TikTok login required; it reads the same data TikTok's public
 profile page already shows anyone who visits it.
 
 ```
-backend/    Node/Express API + the web UI it serves (public/)
-desktop/    Electron wrapper (Windows) that opens the backend's URL
-mobile/     Capacitor wrapper (Android) that does the same
+supabase/
+  functions/api/   the JSON API - a Supabase Edge Function (Deno)
+  migrations/       the Postgres schema (tracked_accounts, snapshots)
+  public/           canonical source for the shared UI (copied into both apps below)
+desktop/            Electron wrapper (Windows) - UI bundled in ui/
+mobile/             Capacitor wrapper (Android) - UI bundled in www/, native
+                    project already generated at mobile/android/
 ```
 
-## 1. Run the backend
+**Everything runs on Supabase**: Postgres for data, an Edge Function for the
+API. There's no separate server to host or keep running. The UI itself is
+bundled directly into each app rather than fetched from a URL at runtime —
+see "Why the UI is bundled, not hosted" below for why.
 
-```bash
-cd backend
-npm install
-copy .env.example .env
-```
+Already deployed and working at project `ckvrruuvbpigusybylew`:
+- API: `https://ckvrruuvbpigusybylew.supabase.co/functions/v1/api`
+- Both apps' bundled UI already point at that URL (`ui/app.js` /
+  `www/app.js`'s `API_BASE` constant) with the app key already set
 
-Edit `.env` and set `API_KEY` to any random string you choose — both apps
-will need to send this exact value, so you'll paste it into each app once.
-
-```bash
-npm start
-```
-
-Open `http://localhost:4100` in a browser, enter your `API_KEY`, and add a
-TikTok username (try your own first).
-
-## 2. Run the desktop app
+## 1. Run the desktop app
 
 ```bash
 cd desktop
@@ -37,48 +33,53 @@ npm install
 npm start
 ```
 
-By default it points at `http://localhost:4100` (set in `desktop/config.json`
-— edit that file, no rebuild needed, if you move the backend elsewhere).
+Enter the app key when prompted (ask if you don't have it handy - it's the
+same one set as the `API_KEY` secret on the Supabase function). To build a
+real Windows installer: `npm run dist`.
 
-To build a real Windows installer: `npm run dist` (needs `npm install` first).
+## 2. Build the Android app
 
-## 3. Build the Android app
+The native project is already generated and synced at `mobile/android/` —
+open that folder directly in Android Studio (File → Open), let it sync, then
+Run on a device or emulator.
 
-The native project is already generated at `mobile/android/` — open that
-folder directly in Android Studio (File → Open), let it sync, then Run on a
-device or emulator.
-
-Before building, point it at your backend: edit
-`mobile/capacitor.config.json`'s `server.url`, then run:
+If you change the shared UI (`supabase/public/`) later, re-copy it into
+`mobile/www/` and `desktop/ui/`, then re-sync Android:
 
 ```bash
 cd mobile
-npx cap sync android
+node node_modules/@capacitor/cli/bin/capacitor sync android
 ```
 
-(If `npx` fails with a `cmd.exe` spawn error on this machine — a PATH/ComSpec
-quirk unrelated to this project — run
-`node node_modules/@capacitor/cli/bin/capacitor sync android` instead.)
+(`npx cap sync android` should also work on a normal machine - it only
+needed the direct `node node_modules/...` form here because of a local
+PATH/ComSpec quirk unrelated to this project.)
 
-## 4. Deploy the backend so the phone app works away from home
+## If you ever need to change the API or database schema
 
-1. Push this repo to GitHub (can be private)
-2. On [Render.com](https://render.com) (free tier): New → Web Service → connect
-   the repo → set **Root Directory** to `backend` → it picks up `backend/render.yaml`
-   → set the `API_KEY` env var to the same value you used locally
-3. You'll get a URL like `https://tiktok-pulse.onrender.com` — put that in
-   `desktop/config.json` and `mobile/capacitor.config.json` (and switch
-   `cleartext` to `false` there once it's `https://`)
+- API code: `supabase/functions/api/*.ts` - deploy with the Supabase CLI
+  (`supabase functions deploy api`) or the Management API
+  (`POST /v1/projects/{ref}/functions/deploy?slug=api`, multipart form with a
+  `metadata` JSON part and one `file` part per source file)
+- Schema changes: write a new file in `supabase/migrations/`, run it via the
+  SQL Editor in the Supabase dashboard, or `POST /v1/projects/{ref}/database/query`
+  with a personal access token
+- Secrets (`API_KEY`, `CACHE_MINUTES`): Supabase dashboard → Edge Functions →
+  Manage secrets, or `POST /v1/projects/{ref}/secrets`
 
-**Free-tier limits worth knowing:**
-- Spins down after inactivity — first request after a while takes ~30-50s to
-  wake up.
-- No persistent disk on the free plan, so the SQLite file (and with it, your
-  follower-history trend) resets on every redeploy and restart. Profile
-  lookups still work fine either way since they re-fetch from TikTok. If you
-  want history that actually survives long-term, move to a host with a
-  persistent volume (e.g. Fly.io's free allowance includes one) — nothing
-  else about the app needs to change.
+## Why the UI is bundled, not hosted
+
+The original plan was to also host the frontend on Supabase (Storage or the
+Edge Function itself) so any browser could reach it with just a URL. That
+turned out not to work: Supabase deliberately forces `Content-Type:
+text/plain` (plus a locked-down CSP) on any HTML served from its own shared
+`*.supabase.co` domain, from both Edge Functions and Storage — a security
+measure against using Supabase's domain to host live, executable pages.
+Confirmed directly while building this, not a guess. So the UI is bundled
+into each app instead (`desktop/ui/`, `mobile/www/`), which is also just
+normal practice for Electron/Capacitor apps - only the JSON API calls go to
+Supabase, and the Edge Function sends proper CORS headers to allow that from
+the apps' bundled-content origins.
 
 ## What this can and can't do
 
@@ -95,6 +96,5 @@ quirk unrelated to this project — run
   headless-browser scraper — out of scope here by design, since you asked
   specifically to avoid the OAuth login flow.
 - Because there's no login, every lookup is an anonymous page request —
-  TikTok can rate-limit or block an IP that does this a lot, and that risk is
-  somewhat higher from a cloud host's IP range than from a home connection.
-  The app caches each account for 30 minutes to keep requests infrequent.
+  TikTok can rate-limit or block an IP that does this a lot. The app caches
+  each account for 30 minutes to keep requests infrequent.

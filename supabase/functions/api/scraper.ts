@@ -1,10 +1,10 @@
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
 
-function deepFindAll(root, pred, maxResults = 50) {
-  const seen = new Set();
-  const stack = [root];
-  const found = [];
+function deepFindAll(root: unknown, pred: (o: any) => boolean, maxResults = 50): any[] {
+  const seen = new Set<unknown>();
+  const stack: unknown[] = [root];
+  const found: any[] = [];
   let guard = 0;
   while (stack.length && guard < 200000 && found.length < maxResults) {
     guard++;
@@ -12,40 +12,46 @@ function deepFindAll(root, pred, maxResults = 50) {
     if (!obj || typeof obj !== "object" || seen.has(obj)) continue;
     seen.add(obj);
     if (pred(obj)) found.push(obj);
-    const vals = Array.isArray(obj) ? obj : Object.values(obj);
+    const vals = Array.isArray(obj) ? obj : Object.values(obj as object);
     for (const v of vals) if (v && typeof v === "object") stack.push(v);
   }
   return found;
 }
 
-function deepFindOne(root, pred) {
-  const r = deepFindAll(root, pred, 1);
-  return r[0] || null;
+function deepFindOne(root: unknown, pred: (o: any) => boolean) {
+  return deepFindAll(root, pred, 1)[0] || null;
 }
 
-function extractJsonBlobs(html) {
-  const blobs = [];
+function extractJsonBlobs(html: string): any[] {
+  const blobs: any[] = [];
   const re = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
-  let m;
+  let m: RegExpExecArray | null;
   while ((m = re.exec(html))) {
     const content = m[1].trim();
     if (!content.startsWith("{") && !content.startsWith("[")) continue;
     try {
       blobs.push(JSON.parse(content));
-    } catch (e) {
+    } catch {
       // not every inline script is JSON (some are plain JS) - skip those
     }
   }
   return blobs;
 }
 
+export class ScraperError extends Error {
+  code: string;
+  constructor(message: string, code: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 /**
- * Fetches a public TikTok profile page and pulls out the profile + stats +
- * recent video items TikTok server-renders into the page itself. No login,
- * no official API - same approach validated manually against a real account
- * during setup, and the same technique the TikTok-OSINT project used.
+ * Fetches a public TikTok profile page and pulls out the profile + stats
+ * TikTok server-renders into the page itself. No login, no official API -
+ * same approach validated manually against a real account during setup.
  */
-async function fetchProfile(username) {
+export async function fetchProfile(username: string) {
   const clean = String(username).trim().replace(/^@/, "");
   const res = await fetch(`https://www.tiktok.com/@${encodeURIComponent(clean)}`, {
     headers: {
@@ -55,34 +61,21 @@ async function fetchProfile(username) {
     },
   });
 
-  if (res.status === 404) {
-    const err = new Error(`No TikTok account found for @${clean}`);
-    err.code = "NOT_FOUND";
-    throw err;
-  }
-  if (!res.ok) {
-    const err = new Error(`TikTok returned HTTP ${res.status} for @${clean}`);
-    err.code = "UPSTREAM_ERROR";
-    throw err;
-  }
+  if (res.status === 404) throw new ScraperError(`No TikTok account found for @${clean}`, "NOT_FOUND");
+  if (!res.ok) throw new ScraperError(`TikTok returned HTTP ${res.status} for @${clean}`, "UPSTREAM_ERROR");
 
   const html = await res.text();
   const blobs = extractJsonBlobs(html);
   if (blobs.length === 0) {
-    const err = new Error(
-      "Couldn't find any embedded data on the page - TikTok may have changed its page format, or is blocking this server."
+    throw new ScraperError(
+      "Couldn't find any embedded data on the page - TikTok may have changed its page format, or is blocking this server.",
+      "PARSE_FAILED"
     );
-    err.code = "PARSE_FAILED";
-    throw err;
   }
   const root = { blobs };
 
   const user = deepFindOne(root, (o) => !Array.isArray(o) && typeof o.uniqueId === "string");
-  if (!user) {
-    const err = new Error(`Couldn't find profile data for @${clean} on the page.`);
-    err.code = "PARSE_FAILED";
-    throw err;
-  }
+  if (!user) throw new ScraperError(`Couldn't find profile data for @${clean} on the page.`, "PARSE_FAILED");
 
   const stats = deepFindOne(
     root,
@@ -91,19 +84,16 @@ async function fetchProfile(username) {
 
   // Note: TikTok's profile page server-renders user + stats, but its video
   // list ("itemList") ships empty in that same payload - videos load via a
-  // separate, signed API call (msToken/X-Bogus) that a plain page fetch can't
-  // produce. Verified live: itemList is `[]` and the unsigned item_list
-  // endpoint returns HTTP 200 with an empty body (a soft block, not an
-  // error). Getting real per-video stats without TikTok login would require
-  // a headless browser - out of scope here, so this app works at the
-  // profile/stats level only.
+  // separate, signed API call (msToken/X-Bogus) that a plain page fetch
+  // can't produce. Verified live while building this. Per-video stats would
+  // need TikTok login or a headless browser - out of scope by design.
 
   return {
-    username: user.uniqueId,
-    tiktokId: user.id,
-    nickname: user.nickname || "",
-    bio: user.signature || "",
-    avatarUrl: user.avatarLarger || user.avatarMedium || user.avatarThumb || "",
+    username: user.uniqueId as string,
+    tiktokId: (user.id as string) ?? null,
+    nickname: (user.nickname as string) || "",
+    bio: (user.signature as string) || "",
+    avatarUrl: (user.avatarLarger || user.avatarMedium || user.avatarThumb || "") as string,
     verified: !!user.verified,
     privateAccount: !!user.privateAccount,
     createTime: user.createTime ? Number(user.createTime) : null,
@@ -113,5 +103,3 @@ async function fetchProfile(username) {
     videoCount: stats ? Number(stats.videoCount) || 0 : 0,
   };
 }
-
-module.exports = { fetchProfile };

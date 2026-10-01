@@ -1,23 +1,45 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+export interface Profile {
+  followers: number;
+  following: number;
+  likes: number;
+  bio: string;
+  avatarUrl: string;
+  verified: boolean;
+}
+
+export interface Snapshot {
+  followers: number;
+  following: number;
+  likes: number;
+  video_count: number;
+  captured_at: string;
+}
+
+export interface Finding {
+  area: string;
+  severity: "high" | "medium" | "low" | "good" | "info";
+  detail: string;
+}
+
 /**
  * Turns stored profile + history snapshots into a ranked list of
  * plain-language suggestions. These are general social-growth rules of
  * thumb, not a scientific model - framed that way on purpose.
  *
  * Note: this works from profile-level stats only (followers, following,
- * likes, video count) tracked over time. Per-video stats (which would enable
- * engagement-rate-per-video and exact posting-cadence insights) aren't
- * available without a TikTok login - see the note in scraper.js.
+ * likes, video count) tracked over time. Per-video stats aren't available
+ * without a TikTok login - see the note in scraper.ts.
  */
-function buildInsights(profile, snapshots) {
-  const findings = [];
+export function buildInsights(profile: Profile, snapshots: Snapshot[]): Finding[] {
+  const findings: Finding[] = [];
 
   // --- posting activity, proxied by video_count change between snapshots ---
   if (snapshots.length >= 2) {
     const first = snapshots[0];
     const last = snapshots[snapshots.length - 1];
-    const spanDays = Math.max((new Date(last.captured_at) - new Date(first.captured_at)) / DAY_MS, 1);
+    const spanDays = Math.max((new Date(last.captured_at).getTime() - new Date(first.captured_at).getTime()) / DAY_MS, 1);
     const newVideos = last.video_count - first.video_count;
     if (spanDays >= 2) {
       const perWeek = (newVideos / spanDays) * 7;
@@ -74,7 +96,7 @@ function buildInsights(profile, snapshots) {
   }
 
   // --- profile completeness ---
-  const missing = [];
+  const missing: string[] = [];
   if (!profile.bio || profile.bio.trim().length < 10) missing.push("a fuller bio");
   if (!profile.avatarUrl) missing.push("a profile picture");
   if (missing.length) {
@@ -95,7 +117,7 @@ function buildInsights(profile, snapshots) {
   // --- follower growth trend from snapshots ---
   const first = snapshots[0];
   const last = snapshots[snapshots.length - 1];
-  const spanDays = first && last ? (new Date(last.captured_at) - new Date(first.captured_at)) / DAY_MS : 0;
+  const spanDays = first && last ? (new Date(last.captured_at).getTime() - new Date(first.captured_at).getTime()) / DAY_MS : 0;
 
   if (snapshots.length >= 2 && spanDays >= 0.5) {
     const delta = last.followers - first.followers;
@@ -125,5 +147,3 @@ function buildInsights(profile, snapshots) {
   findings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
   return findings;
 }
-
-module.exports = { buildInsights };

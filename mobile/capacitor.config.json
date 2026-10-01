@@ -1,9 +1,5 @@
 {
   "appId": "co.mofuli.tiktokpulse",
   "appName": "TikTok Pulse",
-  "webDir": "www",
-  "server": {
-    "url": "http://localhost:4100",
-    "cleartext": true
-  }
+  "webDir": "www"
 }
