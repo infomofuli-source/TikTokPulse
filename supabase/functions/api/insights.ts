@@ -4,6 +4,7 @@ export interface Profile {
   followers: number;
   following: number;
   likes: number;
+  videoCount: number;
   bio: string;
   avatarUrl: string;
   verified: boolean;
@@ -93,6 +94,20 @@ export function buildInsights(profile: Profile, snapshots: Snapshot[]): Finding[
         detail: `Total likes are lower than your follower count (${likesPerFollower.toFixed(2)} likes per follower) - a sign a chunk of your audience may not be actively engaging. Content that prompts likes/comments directly can help re-activate them.`,
       });
     }
+  }
+
+  // --- video count reading zero on an otherwise-real account ---
+  // TikTok's own "privateAccount" flag in this data has been observed to be
+  // stale/wrong (an account the live site clearly marks private still shows
+  // privateAccount:false here) - so this can't claim "this account is
+  // private" outright. videoCount dropping to 0 while followers/likes are
+  // real numbers is still the practical pattern TikTok shows for that case.
+  if (profile.videoCount === 0 && (profile.followers > 0 || profile.likes > 0)) {
+    findings.push({
+      area: "Content visibility",
+      severity: "medium",
+      detail: "Video count reads 0 despite real followers/likes - TikTok does this for accounts set to private (or with restricted visibility) that this app isn't following. If the account should be public, double-check its privacy setting on TikTok directly.",
+    });
   }
 
   // --- profile completeness ---
