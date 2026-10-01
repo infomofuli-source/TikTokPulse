@@ -1,0 +1,26 @@
+{
+  "name": "tiktok-pulse-desktop",
+  "version": "0.1.0",
+  "description": "TikTok Pulse desktop app (Windows)",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "co.mofuli.tiktokpulse",
+    "productName": "TikTok Pulse",
+    "win": {
+      "target": "nsis"
+    },
+    "files": [
+      "main.js",
+      "config.json"
+    ]
+  }
+}

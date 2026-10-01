@@ -1,0 +1,8 @@
+node_modules/
+backend/data/
+backend/.env
+desktop/dist/
+mobile/android/app/build/
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/local.properties

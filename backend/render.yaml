@@ -1,0 +1,18 @@
+# NOTE: Render's free web service tier has no persistent disk - the SQLite
+# file in data/ is wiped on every redeploy and on each spin-down/restart.
+# Profile/video lookups still work fine (they re-fetch from TikTok), but the
+# follower-growth-over-time chart will reset along with it. If you want real
+# long-term history, move this to a host with a persistent volume (e.g.
+# Fly.io's free allowance includes one) - everything else stays the same.
+services:
+  - type: web
+    name: tiktok-pulse
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: API_KEY
+        sync: false
+      - key: CACHE_MINUTES
+        value: "30"

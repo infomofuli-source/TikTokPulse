@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TikTok Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="key-gate" class="key-gate">
+    <div class="key-card">
+      <h1>♥ TikTok Pulse</h1>
+      <p>Enter the app key you set in the backend's <code>API_KEY</code> environment variable.</p>
+      <input id="key-input" type="password" placeholder="App key" autocomplete="off">
+      <button id="key-submit" class="btn">Continue</button>
+      <p class="key-error" id="key-error" hidden></p>
+    </div>
+  </div>
+
+  <div id="app" class="app" hidden>
+    <header class="topbar">
+      <div class="brand">♥ TikTok Pulse</div>
+      <form id="add-form" class="add-form">
+        <input id="add-input" type="text" placeholder="TikTok username, e.g. mrshabani1" autocomplete="off">
+        <button class="btn" type="submit">Track</button>
+      </form>
+    </header>
+
+    <main class="layout">
+      <aside class="watchlist" id="watchlist">
+        <div class="watchlist-empty" id="watchlist-empty">No accounts tracked yet — add one above.</div>
+      </aside>
+
+      <section class="detail" id="detail">
+        <div class="detail-empty" id="detail-empty">
+          Pick a tracked account, or add a new TikTok username to get started.
+        </div>
+        <div class="detail-content" id="detail-content" hidden></div>
+      </section>
+    </main>
+  </div>
+
+  <template id="watchlist-item-tpl">
+    <button class="watchlist-item">
+      <img class="wl-avatar" alt="">
+      <span class="wl-info">
+        <span class="wl-name"></span>
+        <span class="wl-handle"></span>
+      </span>
+      <span class="wl-followers"></span>
+    </button>
+  </template>
+
+  <template id="insight-tpl">
+    <div class="insight">
+      <span class="insight-area"></span>
+      <p class="insight-detail"></p>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
