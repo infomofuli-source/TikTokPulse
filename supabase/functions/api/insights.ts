@@ -143,6 +143,24 @@ export function buildInsights(profile: Profile, snapshots: Snapshot[]): Finding[
     });
   }
 
+  // --- likes growth trend from snapshots (same mechanism as followers above) ---
+  if (snapshots.length >= 2 && spanDays >= 0.5) {
+    const likesDelta = last.likes - first.likes;
+    const perDay = likesDelta / spanDays;
+    const perWeek = perDay * 7;
+    findings.push({
+      area: "Likes growth",
+      severity: likesDelta < 0 ? "medium" : likesDelta === 0 ? "medium" : "good",
+      detail: `${likesDelta >= 0 ? "Gained" : "Lost"} ${Math.abs(likesDelta).toLocaleString()} likes over the last ${spanDays.toFixed(1)} days (~${Math.abs(perDay).toFixed(1)}/day, ~${Math.abs(perWeek).toFixed(0)}/week) since tracking started.`,
+    });
+  } else {
+    findings.push({
+      area: "Likes growth",
+      severity: "info",
+      detail: "Not enough time between check-ins yet for a likes trend - keep checking back.",
+    });
+  }
+
   const severityOrder = { high: 0, medium: 1, low: 2, good: 3, info: 4 };
   findings.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
   return findings;

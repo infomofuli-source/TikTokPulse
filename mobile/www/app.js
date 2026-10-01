@@ -1,3 +1,42 @@
+/* ---------- animated matrix-rain background ---------- */
+(() => {
+  const canvas = document.getElementById("matrix-canvas");
+  if (!canvas) return;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduceMotion) return;
+
+  const ctx = canvas.getContext("2d");
+  const GLYPHS = "01アイウエオカキクケコサシスセソタチツテト$#@+-<>/\\";
+  const FONT_SIZE = 15;
+  let columns = 0;
+  let drops = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    columns = Math.ceil(canvas.width / FONT_SIZE);
+    drops = Array.from({ length: columns }, () => Math.floor((Math.random() * canvas.height) / FONT_SIZE));
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  function draw() {
+    ctx.fillStyle = "rgba(5,10,7,0.12)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = `${FONT_SIZE}px monospace`;
+    for (let i = 0; i < columns; i++) {
+      const glyph = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+      const x = i * FONT_SIZE;
+      const y = drops[i] * FONT_SIZE;
+      ctx.fillStyle = Math.random() > 0.97 ? "#c9ffd8" : "#39ff14";
+      ctx.fillText(glyph, x, y);
+      if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+  setInterval(draw, 50);
+})();
+
 (() => {
   const KEY_STORAGE = "tiktokPulse.appKey";
   let appKey = localStorage.getItem(KEY_STORAGE) || "";
@@ -131,7 +170,9 @@
 
   function renderDetail({ profile, history, insights }) {
     const created = profile.createTime
-      ? new Date(profile.createTime * 1000).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+      ? new Date(profile.createTime * 1000).toLocaleString(undefined, {
+          year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit",
+        })
       : "unknown";
     const checked = profile.lastCheckedAt ? new Date(profile.lastCheckedAt).toLocaleString() : "just now";
 
@@ -156,12 +197,15 @@
       </div>
 
       <div class="section-title">Follower history</div>
-      <div class="chart-wrap" id="chart-wrap"></div>
+      <div class="chart-wrap" id="chart-wrap-followers"></div>
+
+      <div class="section-title">Likes history</div>
+      <div class="chart-wrap" id="chart-wrap-likes"></div>
 
       <div class="section-title">Where to strengthen</div>
       <div class="insights" id="insights-list"></div>
 
-      <p class="videos-note">Per-video stats (which video is over/underperforming) aren't shown here &mdash; TikTok only serves those through a signed, logged-in request that a plain profile lookup can't make. Everything above comes from the public profile page plus the history this app has recorded over time.</p>
+      <p class="videos-note">Per-video stats and comment counts (total or per-video) aren't shown here &mdash; TikTok's public profile page doesn't expose a comment-count figure at all, and per-video breakdowns only come through a signed, logged-in request that a plain profile lookup can't make. Everything above comes from the public profile page plus the history this app has recorded over time.</p>
     `;
 
     document.getElementById("refresh-btn").addEventListener("click", async (e) => {
@@ -187,7 +231,8 @@
       await loadWatchlist();
     });
 
-    renderChart(history);
+    renderChart(history, "followers", "chart-wrap-followers");
+    renderChart(history, "likes", "chart-wrap-likes");
 
     const insightsList = document.getElementById("insights-list");
     for (const f of insights) {
@@ -199,21 +244,21 @@
     }
   }
 
-  function renderChart(history) {
-    const wrap = document.getElementById("chart-wrap");
+  function renderChart(history, field, wrapId) {
+    const wrap = document.getElementById(wrapId);
     if (!history || history.length < 2) {
       wrap.innerHTML = '<p class="chart-empty">Not enough history yet — check back after a few lookups to see a trend line.</p>';
       return;
     }
     const w = 600, h = 140, pad = 10;
-    const values = history.map((p) => p.followers);
+    const values = history.map((p) => p[field]);
     const min = Math.min(...values), max = Math.max(...values);
     const range = max - min || 1;
     const stepX = (w - pad * 2) / (history.length - 1);
 
     const points = history.map((p, i) => {
       const x = pad + i * stepX;
-      const y = h - pad - ((p.followers - min) / range) * (h - pad * 2);
+      const y = h - pad - ((p[field] - min) / range) * (h - pad * 2);
       return [x, y];
     });
 
