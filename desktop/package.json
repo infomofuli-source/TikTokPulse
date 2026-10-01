@@ -1,13 +1,12 @@
 {
   "name": "tiktok-pulse-desktop",
   "version": "0.1.0",
-  "description": "TikTok Pulse desktop app (Windows + macOS)",
+  "description": "TikTok Pulse desktop app (Windows)",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win",
-    "dist:mac": "electron-builder --mac"
+    "dist": "electron-builder --win"
   },
   "devDependencies": {
     "electron": "^32.0.0",
@@ -18,10 +17,6 @@
     "productName": "TikTok Pulse",
     "win": {
       "target": "nsis"
-    },
-    "mac": {
-      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
-      "identity": null
     },
     "files": [
       "main.js",
