@@ -1,0 +1,37 @@
+name: Build desktop app
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "desktop-v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            script: dist
+            artifact: windows-installer
+          - os: macos-latest
+            script: dist:mac
+            artifact: macos-installer
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run ${{ matrix.script }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tiktok-pulse-${{ matrix.artifact }}
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+          if-no-files-found: error
