@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TikTok Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="matrix-canvas" aria-hidden="true"></canvas>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <div id="key-gate" class="key-gate">
+    <div class="key-card">
+      <div class="term-bar"><span></span><span></span><span></span><span class="term-path">root@tiktok-pulse:~$</span></div>
+      <div class="term-body">
+        <h1>&gt; TIKTOK_PULSE<span class="cursor">_</span></h1>
+        <p>// enter the <code>API_KEY</code> you set on the Supabase function to authenticate</p>
+        <input id="key-input" type="password" placeholder="ACCESS_KEY" autocomplete="off">
+        <button id="key-submit" class="btn">[ AUTHENTICATE ]</button>
+        <p class="key-error" id="key-error" hidden></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="app" class="app" hidden>
+    <header class="topbar">
+      <div class="brand">root@tiktok-pulse<span class="dim">:~$</span> <span class="cursor">_</span></div>
+      <form id="add-form" class="add-form">
+        <span class="prompt-glyph">&gt;</span>
+        <input id="add-input" type="text" placeholder="target_username" autocomplete="off">
+        <button class="btn" type="submit">[ TRACE ]</button>
+      </form>
+    </header>
+
+    <main class="layout">
+      <aside class="watchlist" id="watchlist">
+        <div class="watchlist-empty" id="watchlist-empty">// no targets tracked yet &mdash; trace one above</div>
+      </aside>
+
+      <section class="detail" id="detail">
+        <div class="detail-empty" id="detail-empty">
+          // select a tracked target, or trace a new TikTok username to begin
+        </div>
+        <div class="detail-content" id="detail-content" hidden></div>
+      </section>
+    </main>
+  </div>
+
+  <template id="watchlist-item-tpl">
+    <button class="watchlist-item">
+      <img class="wl-avatar" alt="">
+      <span class="wl-info">
+        <span class="wl-name"></span>
+        <span class="wl-handle"></span>
+      </span>
+      <span class="wl-followers"></span>
+    </button>
+  </template>
+
+  <template id="insight-tpl">
+    <div class="insight">
+      <span class="insight-area"></span>
+      <p class="insight-detail"></p>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
