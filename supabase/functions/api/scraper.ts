@@ -75,7 +75,18 @@ export async function fetchProfile(username: string) {
   const root = { blobs };
 
   const user = deepFindOne(root, (o) => !Array.isArray(o) && typeof o.uniqueId === "string");
-  if (!user) throw new ScraperError(`Couldn't find profile data for @${clean} on the page.`, "PARSE_FAILED");
+  if (!user) {
+    // TikTok's "audience controls" privacy setting hides a profile entirely
+    // from logged-out viewers (distinct from a fully private account, which
+    // this scraper can't distinguish since both render this same gate).
+    if (html.includes("turned on audience controls") || html.includes("Log in to TikTok")) {
+      throw new ScraperError(
+        `@${clean} has TikTok's "audience controls" turned on, which hides the profile from anyone not logged in - this app can't read it without a TikTok login, by design.`,
+        "LOGIN_REQUIRED"
+      );
+    }
+    throw new ScraperError(`Couldn't find profile data for @${clean} on the page.`, "PARSE_FAILED");
+  }
 
   const stats = deepFindOne(
     root,
